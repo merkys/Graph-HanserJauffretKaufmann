@@ -3,6 +3,9 @@ package Graph::HanserJauffretKaufmann;
 use strict;
 use warnings;
 
+# ABSTRACT: Find all cycles in a graph
+# VERSION
+
 use Graph::Undirected;
 use List::Util qw( uniq );
 
