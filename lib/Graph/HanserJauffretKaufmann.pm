@@ -3,7 +3,6 @@ package Graph::HanserJauffretKaufmann;
 use strict;
 use warnings;
 
-use Data::Dumper;
 use Graph::Undirected;
 use List::Util qw( uniq );
 
