@@ -14,11 +14,9 @@ sub find_cycles
     my $p = Graph::Undirected->new( multiedged  => 1,
                                     vertices    => [ $graph->vertices ],
                                     edges       => [ $graph->edges ] );
-    # print STDERR "$p\n";
 
+    my @cycles;
     while( my( $vertex ) = $p->vertices ) {
-        print "Considering graph $p\n";
-        print "Removing $vertex\n";
         my @edges;
         my @loops;
         for my $edge ($p->edges_at( $vertex )) {
@@ -29,12 +27,10 @@ sub find_cycles
             }
         }
         for my $loop (@loops) {
-            local $, = ", ";
-            print "FOUND LOOP: $vertex", @{$p->get_edge_attribute_by_id( @$loop, 'path' )}, "\n";
+            push @cycles, [ $vertex, @{$p->get_edge_attribute_by_id( @$loop, 'path' )} ];
         }
         for my $i (0..$#edges) {
             for my $j ($i+1..$#edges) {
-                print "Tying edges ($edges[$i]->[0], $edges[$i]->[1]) and ($edges[$j]->[0], $edges[$j]->[1])\n";
                 my @new_path;
                 if( $p->has_edge_attribute_by_id( @{$edges[$i]}, 'path' ) ) {
                     push @new_path,
@@ -46,16 +42,15 @@ sub find_cycles
                          @{$p->get_edge_attribute_by_id( @{$edges[$j]}, 'path' )};
                 }
                 next unless scalar( uniq @new_path ) == scalar( @new_path );
-                print "Recoding path: @new_path\n";
                 my @new_edge = grep { $_ ne $vertex } map { $_->[0], $_->[1] } ( $edges[$i], $edges[$j] );
-                print "Placing new edge between @new_edge\n";
                 my $edge = $p->add_edge_get_id( @new_edge );
                 $p->set_edge_attribute_by_id( @new_edge, $edge, 'path', \@new_path );
-                print "After new edge: $p (", scalar $p->edges, " edges)\n";
             }
         }
         $p->delete_vertex( $vertex );
     }
+
+    return @cycles;
 }
 
 1;

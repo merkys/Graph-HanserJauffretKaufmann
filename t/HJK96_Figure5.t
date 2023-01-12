@@ -4,8 +4,10 @@
 
 use strict;
 use warnings;
+
 use Graph::Undirected;
 use Graph::HanserJauffretKaufmann;
+use Test::More tests => 1;
 
 my $g = Graph::Undirected->new;
 
@@ -16,4 +18,4 @@ $g->add_path( 'd', 'h', 'k', 'l', 'p', 'o', 'n', 'm', 'j', 'i' );
 $g->add_edge( 'h', 'i' );
 $g->add_edge( 'l', 'm' );
 
-Graph::HanserJauffretKaufmann::find_cycles( $g );
+is( scalar Graph::HanserJauffretKaufmann::find_cycles( $g ), 4 );
