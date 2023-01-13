@@ -15,9 +15,9 @@ if( !$ENV{EXTENDED_TESTING} ) {
 
 plan tests => 1;
 
-my $fullerene = 'c12c3c4c5c2c2c6c7c1c1c8c3c3c9c4c4c%10c5c5c2c2c6c6c%11c7c1c1c7c8c3c3c8c9c4c4c9c%10c5c5c2c2c6c6c%11c1c1c7c3c3c8c4c4c9c5c2c2c6c1c3c42';
+my $smiles = 'c12c3c4c5c2c2c6c7c1c1c8c3c3c9c4c4c%10c5c5c2c2c6c6c%11c7c1c1c7c8c3c3c8c9c4c4c9c%10c5c5c2c2c6c6c%11c1c1c7c3c3c8c4c4c9c5c2c2c6c1c3c42';
 
 my $parser = Chemistry::OpenSMILES::Parser->new;
-my( $g ) = $parser->parse( $fullerene );
+my( $g ) = $parser->parse( $smiles );
 
 is( scalar Graph::HanserJauffretKaufmann::find_cycles( $g ), 8018 );
