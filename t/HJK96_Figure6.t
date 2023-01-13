@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Test with a complete graph of 8 vertices.
+# Also present as Figure 6 in the HJK paper.
 
 use strict;
 use warnings;
