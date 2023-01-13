@@ -17,8 +17,11 @@ sub find_cycles
                                     vertices    => [ $graph->vertices ],
                                     edges       => [ $graph->edges ] );
 
+    # Vertices have to be visited in the order of increasing degree
+    my @order = sort { $p->degree( $a ) <=> $p->degree( $b ) } $p->vertices;
+
     my @cycles;
-    while( my( $vertex ) = $p->vertices ) {
+    for my $vertex (@order) {
         my @edges;
         my @loops;
         for my $edge ($p->edges_at( $vertex )) {
