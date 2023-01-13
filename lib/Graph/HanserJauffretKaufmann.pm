@@ -14,6 +14,7 @@ sub find_cycles
     my( $graph ) = @_;
 
     my $p = Graph::Undirected->new( multiedged  => 1,
+                                    refvertexed => $graph->is_refvertexed,
                                     vertices    => [ $graph->vertices ],
                                     edges       => [ $graph->edges ] );
 
