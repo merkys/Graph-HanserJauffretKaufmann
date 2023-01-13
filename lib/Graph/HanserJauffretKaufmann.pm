@@ -37,16 +37,9 @@ sub find_cycles
         }
         for my $i (0..$#edges) {
             for my $j ($i+1..$#edges) {
-                my @new_path;
-                if( $p->has_edge_attribute_by_id( @{$edges[$i]}, 'path' ) ) {
-                    push @new_path,
-                         @{$p->get_edge_attribute_by_id( @{$edges[$i]}, 'path' )};
-                }
-                push @new_path, $vertex;
-                if( $p->has_edge_attribute_by_id( @{$edges[$j]}, 'path' ) ) {
-                    push @new_path,
-                         @{$p->get_edge_attribute_by_id( @{$edges[$j]}, 'path' )};
-                }
+                my $path_i = $p->get_edge_attribute_by_id( @{$edges[$i]}, 'path' );
+                my $path_j = $p->get_edge_attribute_by_id( @{$edges[$j]}, 'path' );
+                my @new_path = (defined $path_i ? @$path_i : (), $vertex, defined $path_j ? @$path_j : ());
                 # If paths have more vertices in common than $vertex, they have to be eliminated
                 next unless scalar( uniq @new_path ) == scalar( @new_path );
                 my @new_edge = grep { $_ ne $vertex }
