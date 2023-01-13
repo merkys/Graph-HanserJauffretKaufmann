@@ -7,13 +7,7 @@ use warnings;
 
 use Graph::Undirected;
 use Graph::HanserJauffretKaufmann;
-use Test::More;
-
-if( !$ENV{EXTENDED_TESTING} ) {
-    plan skip_all => "Skip \$ENV{EXTENDED_TESTING} is not set\n";
-}
-
-plan tests => 1;
+use Test::More tests => 1;
 
 my $g = Graph::Undirected->new;
 
