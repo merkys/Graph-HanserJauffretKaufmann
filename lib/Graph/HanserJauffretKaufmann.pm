@@ -40,24 +40,24 @@ sub find_cycles
         }
         for my $i (0..$#edges) {
             for my $j ($i+1..$#edges) {
-                my @new_path;
+                my( $path1, $path2 );
                 if( exists $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]} ) {
-                    push @new_path,
-                         @{$attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]}};
+                    $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
                 }
+                if( exists $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]} ) {
+                    $path2 = $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]};
+                }
+                # If paths have more vertices in common than $vertex, they have to be eliminated.
                 # $vertex will only participate in one of the paths if it is already visited and removed.
                 # This cannot already be done at the time of considering $vertex.
-                push @new_path, $vertex;
-                if( exists $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]} ) {
-                    push @new_path,
-                         @{$attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]}};
-                }
-                # If paths have more vertices in common than $vertex, they have to be eliminated
-                next unless scalar( uniq @new_path ) == scalar( @new_path );
+                next if $path1 && $path2 && scalar( uniq( @$path1, @$path2 ) ) != scalar( @$path1 ) + scalar ( @$path2 );
                 my @new_edge = sort grep { $_ ne $vertex }
                                 map { $_->[0], $_->[1] }
                                     ( $edges[$i], $edges[$j] );
                 my $edge = $p->add_edge_get_id( @new_edge );
+                my @new_path = ( $vertex );
+                push @new_path, @$path1 if $path1;
+                push @new_path, @$path2 if $path2;
                 $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \@new_path;
             }
         }
