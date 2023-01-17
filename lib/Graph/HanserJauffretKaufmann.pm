@@ -37,6 +37,9 @@ sub find_cycles
         for my $loop (@loops) {
             push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
         }
+        # If we had a matrix of rows corresponding to paths, we would need all pairs of rows not having common bits.
+        # When speaking about vectors, we are interested in orthogonal vectors.
+        # To find such pairs, we would still need to perform pairwise multiplications (could matrix algebra help?).
         for my $i (0..$#edges) {
             my $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
             EDGE: for my $j ($i+1..$#edges) {
