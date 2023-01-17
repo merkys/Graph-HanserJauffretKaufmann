@@ -6,6 +6,7 @@ use warnings;
 # ABSTRACT: Find all cycles in a graph
 # VERSION
 
+use Bit::Vector::Overload;
 use Graph::Undirected;
 
 sub find_cycles
@@ -21,6 +22,10 @@ sub find_cycles
     my @order = sort { $p->degree( $a ) <=> $p->degree( $b ) } $p->vertices;
 
     my $attributes = {};
+    my $map = {};
+    for my $i (0..$#order) {
+        $map->{$order[$i]} = $i;
+    }
 
     my @cycles;
     for my $vertex (@order) {
@@ -35,7 +40,7 @@ sub find_cycles
             }
         }
         for my $loop (@loops) {
-            push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
+            push @cycles, [ $vertex, $attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]} ];
         }
         for my $i (0..$#edges) {
             EDGE: for my $j ($i+1..$#edges) {
@@ -45,18 +50,18 @@ sub find_cycles
                 # $vertex will only participate in one of the paths if it is already visited and removed.
                 # This cannot already be done at the time of considering $vertex.
                 if( $path1 && $path2 ) {
-                    for (keys %$path2) {
-                        next EDGE if exists $path1->{$_};
-                    }
+                    my $common = $path1 & $path2;
+                    next unless $common->is_empty;
                 }
                 my @new_edge = sort grep { $_ ne $vertex }
                                 map { $_->[0], $_->[1] }
                                     ( $edges[$i], $edges[$j] );
                 my $edge = $p->add_edge_get_id( @new_edge );
-                my %new_path = map { $_ => 1 } $vertex,
-                                               ($path1 ? keys %$path1 : ()),
-                                               ($path2 ? keys %$path2 : ());
-                $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \%new_path;
+                my $new_path = Bit::Vector->new( scalar @order );
+                $new_path->bit_flip( $map->{$vertex} );
+                $new_path |= $path1 if $path1;
+                $new_path |= $path2 if $path2;
+                $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = $new_path;
             }
         }
         $p->delete_vertex( $vertex );
