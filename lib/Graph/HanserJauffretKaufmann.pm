@@ -38,8 +38,8 @@ sub find_cycles
             push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
         }
         for my $i (0..$#edges) {
+            my $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
             EDGE: for my $j ($i+1..$#edges) {
-                my $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
                 my $path2 = $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]};
                 # If paths have more vertices in common than $vertex, they have to be eliminated.
                 # $vertex will only participate in one of the paths if it is already visited and removed.
