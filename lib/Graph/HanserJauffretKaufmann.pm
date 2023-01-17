@@ -45,6 +45,8 @@ sub find_cycles
                     push @new_path,
                          @{$attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]}};
                 }
+                # $vertex will only participate in one of the paths if it is already visited and removed.
+                # This cannot already be done at the time of considering $vertex.
                 push @new_path, $vertex;
                 if( exists $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]} ) {
                     push @new_path,
