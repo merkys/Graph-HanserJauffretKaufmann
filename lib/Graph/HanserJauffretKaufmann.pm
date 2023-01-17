@@ -7,7 +7,6 @@ use warnings;
 # VERSION
 
 use Graph::Undirected;
-use List::Util qw( uniq );
 
 sub find_cycles
 {
@@ -36,7 +35,7 @@ sub find_cycles
             }
         }
         for my $loop (@loops) {
-            push @cycles, [ $vertex, @{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
+            push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
         }
         for my $i (0..$#edges) {
             for my $j ($i+1..$#edges) {
@@ -45,15 +44,23 @@ sub find_cycles
                 # If paths have more vertices in common than $vertex, they have to be eliminated.
                 # $vertex will only participate in one of the paths if it is already visited and removed.
                 # This cannot already be done at the time of considering $vertex.
-                next if $path1 && $path2 && scalar( uniq( @$path1, @$path2 ) ) != scalar( @$path1 ) + scalar ( @$path2 );
+                if( $path1 && $path2 ) {
+                    my $found;
+                    for (keys %$path2) {
+                        next unless exists $path1->{$_};
+                        $found = 1;
+                        last;
+                    }
+                    next if $found;
+                }
                 my @new_edge = sort grep { $_ ne $vertex }
                                 map { $_->[0], $_->[1] }
                                     ( $edges[$i], $edges[$j] );
                 my $edge = $p->add_edge_get_id( @new_edge );
-                my @new_path = ( $vertex );
-                push @new_path, @$path1 if $path1;
-                push @new_path, @$path2 if $path2;
-                $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \@new_path;
+                my %new_path = map { $_ => 1 } $vertex,
+                                               ($path1 ? keys %$path1 : ()),
+                                               ($path2 ? keys %$path2 : ());
+                $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \%new_path;
             }
         }
         $p->delete_vertex( $vertex );
