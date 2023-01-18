@@ -6,7 +6,6 @@ use warnings;
 # ABSTRACT: Find all cycles in a graph
 # VERSION
 
-use Graph::Undirected;
 use List::Util qw( uniq );
 use Math::Matrix::MaybeGSL;
 
@@ -14,13 +13,8 @@ sub find_cycles
 {
     my( $graph ) = @_;
 
-    my $p = Graph::Undirected->new( multiedged  => 1,
-                                    refvertexed => $graph->is_refvertexed,
-                                    vertices    => [ $graph->vertices ],
-                                    edges       => [ $graph->edges ] );
-
     # Vertices have to be visited in the order of increasing degree
-    my @order = sort { $p->degree( $a ) <=> $p->degree( $b ) } $p->vertices;
+    my @order = sort { $graph->degree( $a ) <=> $graph->degree( $b ) } $graph->vertices;
 
     my %map;
     for (0..$#order) {
@@ -31,9 +25,9 @@ sub find_cycles
     # In a matrix rows would correspond to edges to other vertices.
     my %edge_matrices;
     my %edges;
-    for my $vertex ($p->vertices) {
-        $edge_matrices{$vertex} = Matrix->new( $p->degree( $vertex ), scalar $p->vertices );
-        $edges{$vertex} = [ $p->neighbours( $vertex ) ];
+    for my $vertex ($graph->vertices) {
+        $edge_matrices{$vertex} = Matrix->new( $graph->degree( $vertex ), scalar $graph->vertices );
+        $edges{$vertex} = [ $graph->neighbours( $vertex ) ];
     }
 
     my @cycles;
