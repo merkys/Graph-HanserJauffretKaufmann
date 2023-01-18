@@ -21,12 +21,15 @@ sub find_cycles
         $map{$order[$_]} = $_;
     }
 
+    my $has_row; # Does Math::Matrix::MaybeGSL have row()?
+
     # Create a data structure holding a matrix for each of vertex.
     # In a matrix rows would correspond to edges to other vertices.
     my %edge_matrices;
     my %edges;
     for my $vertex ($graph->vertices) {
         $edge_matrices{$vertex} = Matrix->new( $graph->degree( $vertex ), scalar $graph->vertices );
+        $has_row = $edge_matrices{$vertex}->can( 'row' ) if !defined $has_row && defined $edge_matrices{$vertex};
         $edges{$vertex} = [ $graph->neighbours( $vertex ) ];
     }
 
@@ -45,8 +48,14 @@ sub find_cycles
                     # Self-loop detected
                     push @cycles, 'cycle'; # TODO: Return something meaningful
                 } else {
-                    my $row_i = row( $edge_matrices{$vertex}, $i );
-                    my $row_j = row( $edge_matrices{$vertex}, $j );
+                    my( $row_i, $row_j );
+                    if( $has_row ) {
+                        $row_i = $edge_matrices{$vertex}->row( $i+1 );
+                        $row_j = $edge_matrices{$vertex}->row( $j+1 );
+                    } else {
+                        $row_i = row( $edge_matrices{$vertex}, $i );
+                        $row_j = row( $edge_matrices{$vertex}, $j );
+                    }
                     my $new_row = sum( $row_i, $row_j );
                     $new_row->assign( 1, $map{$vertex}+1, 1 );
 
