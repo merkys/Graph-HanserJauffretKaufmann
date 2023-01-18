@@ -22,6 +22,9 @@ sub find_cycles
 
     my $attributes = {};
 
+    # TODO: Create a data structure holding a matrix for each of vertex.
+    # In a matrix rows would correspond to edges to other vertices.
+
     my @cycles;
     for my $vertex (@order) {
         my @edges;
@@ -38,8 +41,8 @@ sub find_cycles
             push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
         }
         # If we had a matrix of rows corresponding to paths, we would need all pairs of rows not having common bits.
-        # When speaking about vectors, we are interested in orthogonal vectors.
-        # To find such pairs, we would still need to perform pairwise multiplications (could matrix algebra help?).
+        # This can be achieved by multiplying the matrix with transposed itself.
+        # In the result, zeros will mark pairs of paths not having common vertices.
         for my $i (0..$#edges) {
             my $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
             EDGE: for my $j ($i+1..$#edges) {
@@ -60,8 +63,11 @@ sub find_cycles
                                                ($path1 ? keys %$path1 : ()),
                                                ($path2 ? keys %$path2 : ());
                 $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \%new_path;
+                # TODO: Add new rows to matrices of connected vertices with ORed (summed) rows.
             }
         }
+        # TODO: Delete the matrix of this vertex.
+        # TODO: Delete rows associated with this vertex from other matrices.
         $p->delete_vertex( $vertex );
     }
 
