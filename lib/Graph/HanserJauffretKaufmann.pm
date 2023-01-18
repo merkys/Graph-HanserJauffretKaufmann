@@ -7,6 +7,8 @@ use warnings;
 # VERSION
 
 use Graph::Undirected;
+use List::Util qw( uniq );
+use Math::Matrix::MaybeGSL;
 
 sub find_cycles
 {
@@ -20,58 +22,108 @@ sub find_cycles
     # Vertices have to be visited in the order of increasing degree
     my @order = sort { $p->degree( $a ) <=> $p->degree( $b ) } $p->vertices;
 
+    my %map;
+    for (0..$#order) {
+        $map{$order[$_]} = $_;
+    }
+
     my $attributes = {};
 
-    # TODO: Create a data structure holding a matrix for each of vertex.
+    # Create a data structure holding a matrix for each of vertex.
     # In a matrix rows would correspond to edges to other vertices.
+    my %edge_matrices;
+    my %edges;
+    for my $vertex ($p->vertices) {
+        $edge_matrices{$vertex} = Matrix->new( $p->degree( $vertex ), scalar $p->vertices );
+        $edges{$vertex} = [ $p->neighbours( $vertex ) ];
+    }
 
     my @cycles;
     for my $vertex (@order) {
-        my @edges;
-        my @loops;
-        for my $edge ($p->edges_at( $vertex )) {
-            # Edges that start and end at the same vertex are self-loops
-            if( $edge->[0] ne $edge->[1] ) {
-                push @edges, map { [ sort( @$edge ), $_ ] } $p->get_multiedge_ids( @$edge );
-            } else {
-                push @loops, map { [ sort( @$edge ), $_ ] } $p->get_multiedge_ids( @$edge );
-            }
-        }
-        for my $loop (@loops) {
-            push @cycles, [ $vertex, keys %{$attributes->{$loop->[0]}{$loop->[1]}{$loop->[2]}} ];
-        }
-        # If we had a matrix of rows corresponding to paths, we would need all pairs of rows not having common bits.
-        # This can be achieved by multiplying the matrix with transposed itself.
-        # In the result, zeros will mark pairs of paths not having common vertices.
-        for my $i (0..$#edges) {
-            my $path1 = $attributes->{$edges[$i]->[0]}{$edges[$i]->[1]}{$edges[$i]->[2]};
-            EDGE: for my $j ($i+1..$#edges) {
-                my $path2 = $attributes->{$edges[$j]->[0]}{$edges[$j]->[1]}{$edges[$j]->[2]};
-                # If paths have more vertices in common than $vertex, they have to be eliminated.
-                # $vertex will only participate in one of the paths if it is already visited and removed.
-                # This cannot already be done at the time of considering $vertex.
-                if( $path1 && $path2 ) {
-                    for (keys %$path2) {
-                        next EDGE if exists $path1->{$_};
-                    }
+        next unless defined $edge_matrices{$vertex};
+        my $incident_edges = $edge_matrices{$vertex} * transpose( $edge_matrices{$vertex} );
+        for my $i (0..$#{$edges{$vertex}}) {
+            for my $j ($i+1..$#{$edges{$vertex}}) {
+                next if $incident_edges->element( $i+1, $j+1 ); # Skip non-orthogonal rows
+
+                my( $vertex1, $vertex2 ) = map { $edges{$vertex}->[$_] } ( $i, $j );
+
+                if( $vertex1 eq $vertex2 ) {
+                    # Self-loop detected
+                    push @cycles, 'cycle'; # TODO: Return something meaningful
+                } else {
+                    my $row_i = row( $edge_matrices{$vertex}, $i );
+                    my $row_j = row( $edge_matrices{$vertex}, $j );
+                    my $new_row = sum( $row_i, $row_j );
+                    $new_row->assign( 1, $map{$vertex}+1, 1 );
+
+                    $edge_matrices{$vertex1} = $edge_matrices{$vertex1}->vconcat( $new_row );
+                    $edge_matrices{$vertex2} = $edge_matrices{$vertex2}->vconcat( $new_row );
+                    push @{$edges{$vertex1}}, $vertex2;
+                    push @{$edges{$vertex2}}, $vertex1;
                 }
-                my @new_edge = sort grep { $_ ne $vertex }
-                                map { $_->[0], $_->[1] }
-                                    ( $edges[$i], $edges[$j] );
-                my $edge = $p->add_edge_get_id( @new_edge );
-                my %new_path = map { $_ => 1 } $vertex,
-                                               ($path1 ? keys %$path1 : ()),
-                                               ($path2 ? keys %$path2 : ());
-                $attributes->{$new_edge[0]}{$new_edge[1]}{$edge} = \%new_path;
-                # TODO: Add new rows to matrices of connected vertices with ORed (summed) rows.
             }
         }
-        # TODO: Delete the matrix of this vertex.
-        # TODO: Delete rows associated with this vertex from other matrices.
-        $p->delete_vertex( $vertex );
+
+        delete $edge_matrices{$vertex};
+        for my $neighbour (uniq @{$edges{$vertex}}) {
+            my @indices = grep { $edges{$neighbour}->[$_] ne $vertex }
+                              0..$#{$edges{$neighbour}};
+            $edge_matrices{$neighbour} = rows( $edge_matrices{$neighbour}, @indices );
+            @{$edges{$neighbour}} = map { $edges{$neighbour}->[$_] } @indices;
+        }
+        delete $edges{$vertex};
     }
 
     return @cycles;
+}
+
+sub sum
+{
+    my( $A, $B ) = @_;
+
+    my @A = $A->as_list;
+    my @B = $B->as_list;
+
+    for (0..$#A) {
+        $A[$_] += $B[$_];
+    }
+    return Matrix->new_from_rows( [ \@A ] );
+}
+
+sub row
+{
+    my( $matrix, $row ) = @_;
+    my( $rows, $columns ) = $matrix->dim;
+    my @elements = $matrix->as_list;
+    return Matrix->new_from_rows( [[ @elements[$row*$columns..($row+1)*$columns-1 ] ]] );
+}
+
+sub rows
+{
+    my( $matrix, @rows ) = @_;
+    my( $rows, $columns ) = $matrix->dim;
+    return unless @rows;
+    return $matrix if scalar( @rows ) == $rows; # HACK: This is broken if order is different
+
+    my @elements = $matrix->as_list;
+    my @new_rows;
+    for (@rows) {
+        push @new_rows, [ @elements[$_*$columns..($_+1)*$columns-1 ] ];
+    }
+    return Matrix->new_from_rows( \@new_rows );
+}
+
+sub transpose
+{
+    my( $matrix ) = @_;
+    my( $rows, $columns ) = $matrix->dim;
+    my @elements = $matrix->as_list;
+    my @rows;
+    for my $i (0..$rows-1) {
+        push @rows, [ @elements[$i*$columns..($i+1)*$columns-1] ];
+    }
+    return Matrix->new_from_cols( \@rows );
 }
 
 1;
