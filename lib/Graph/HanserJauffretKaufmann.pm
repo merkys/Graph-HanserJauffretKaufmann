@@ -27,8 +27,6 @@ sub find_cycles
         $map{$order[$_]} = $_;
     }
 
-    my $attributes = {};
-
     # Create a data structure holding a matrix for each of vertex.
     # In a matrix rows would correspond to edges to other vertices.
     my %edge_matrices;
