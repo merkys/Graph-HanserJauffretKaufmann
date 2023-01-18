@@ -40,9 +40,10 @@ sub find_cycles
     for my $vertex (@order) {
         next unless defined $edge_matrices{$vertex};
         my $incident_edges = $edge_matrices{$vertex} * transpose( $edge_matrices{$vertex} );
+        my @incident_edges = $incident_edges->as_list;
         for my $i (0..$#{$edges{$vertex}}) {
             for my $j ($i+1..$#{$edges{$vertex}}) {
-                next if $incident_edges->element( $i+1, $j+1 ); # Skip non-orthogonal rows
+                next if $incident_edges[$i*scalar( @{$edges{$vertex}} ) + $j]; # Skip non-orthogonal rows
 
                 my( $vertex1, $vertex2 ) = map { $edges{$vertex}->[$_] } ( $i, $j );
 
