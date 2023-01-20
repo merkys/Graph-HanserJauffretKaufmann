@@ -37,33 +37,44 @@ sub find_cycles
     for my $vertex (@order) {
         next unless defined $edge_matrices{$vertex};
         my $incident_edges = $edge_matrices{$vertex} * transpose( $edge_matrices{$vertex} );
-        my @incident_edges = $incident_edges->as_list;
-        for my $i (0..$#{$edges{$vertex}}) {
-            for my $j ($i+1..$#{$edges{$vertex}}) {
-                next if $incident_edges[$i*scalar( @{$edges{$vertex}} ) + $j]; # Skip non-orthogonal rows
-
-                my( $vertex1, $vertex2 ) = map { $edges{$vertex}->[$_] } ( $i, $j );
-
-                if( $vertex1 eq $vertex2 ) {
-                    # Self-loop detected
-                    push @cycles, 'cycle'; # TODO: Return something meaningful
-                } else {
-                    my( $row_i, $row_j );
-                    if( $has_row ) {
-                        $row_i = $edge_matrices{$vertex}->row( $i+1 );
-                        $row_j = $edge_matrices{$vertex}->row( $j+1 );
-                    } else {
-                        $row_i = row( $edge_matrices{$vertex}, $i );
-                        $row_j = row( $edge_matrices{$vertex}, $j );
-                    }
-                    my $new_row = sum( $row_i, $row_j );
-                    $new_row->assign( 1, $map{$vertex}+1, 1 );
-
-                    $edge_matrices{$vertex1} = $edge_matrices{$vertex1}->vconcat( $new_row );
-                    $edge_matrices{$vertex2} = $edge_matrices{$vertex2}->vconcat( $new_row );
-                    push @{$edges{$vertex1}}, $vertex2;
-                    push @{$edges{$vertex2}}, $vertex1;
+        my @incident_edges;
+        if( $incident_edges->can( 'find_zeros' ) ) {
+            @incident_edges = map { [ $_->[0]-1, $_->[1]-1 ] }
+                              grep  { $_->[0]  < $_->[1] } $incident_edges->find_zeros;
+        } else {
+            my( undef, $columns ) = $incident_edges->dim;
+            my $pos = 0;
+            for ($incident_edges->as_list) {
+                if( !$_ ) {
+                    my( $i, $j ) = ( int($pos/$columns), $pos % $columns );
+                    push @incident_edges, [$i, $j] if $i < $j;
                 }
+                $pos++;
+            }
+        }
+        for my $edge (@incident_edges) {
+            my( $i, $j ) = @$edge;
+            my( $vertex1, $vertex2 ) = map { $edges{$vertex}->[$_] } ( $i, $j );
+
+            if( $vertex1 eq $vertex2 ) {
+                # Self-loop detected
+                push @cycles, 'cycle'; # TODO: Return something meaningful
+            } else {
+                my( $row_i, $row_j );
+                if( $has_row ) {
+                    $row_i = $edge_matrices{$vertex}->row( $i+1 );
+                    $row_j = $edge_matrices{$vertex}->row( $j+1 );
+                } else {
+                    $row_i = row( $edge_matrices{$vertex}, $i );
+                    $row_j = row( $edge_matrices{$vertex}, $j );
+                }
+                my $new_row = sum( $row_i, $row_j );
+                $new_row->assign( 1, $map{$vertex}+1, 1 );
+
+                $edge_matrices{$vertex1} = $edge_matrices{$vertex1}->vconcat( $new_row );
+                $edge_matrices{$vertex2} = $edge_matrices{$vertex2}->vconcat( $new_row );
+                push @{$edges{$vertex1}}, $vertex2;
+                push @{$edges{$vertex2}}, $vertex1;
             }
         }
 
