@@ -49,7 +49,7 @@ sub find_cycles
                 # If paths have more vertices in common than $vertex, they have to be eliminated.
                 # $vertex will only participate in one of the paths if it is already visited and removed.
                 # This cannot already be done at the time of considering $vertex.
-                if( $path1 && $path2 ) {
+                if( defined $path1 && defined $path2 ) {
                     my $common = $path1 & $path2;
                     next unless $common->is_empty;
                 }
